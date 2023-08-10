@@ -98,9 +98,6 @@ class FileImporter
         if (!isset($this->loaders[$extention])) {
             throw new \RuntimeException(sprintf('No load found for "%s" format.', $extention));
         }
-        if(strpos($domain, 'messages+intl-icu') === 0) {
-            $domain = 'messages';
-        }
 
         $messageCatalogue = $this->loaders[$extention]->load($file->getPathname(), $locale, $domain);
 
@@ -126,7 +123,16 @@ class FileImporter
                 $transUnit = $this->transUnitManager->create($key, $domain);
             }
 
+            if(strpos($domain, 'messages+intl-icu') === 0) {
+                $transUnitToUpdate = $this->storage->getTransUnitByKeyAndDomain($key, 'messages');
+                $transUnitToDelete = $this->storage->getTransUnitByKeyAndDomain($key, 'messages+intl-icu');
+                if ($transUnitToDelete) {
+                    $translation = $this->transUnitManager->deleteTranslation($transUnitToDelete, $locale);
+                }
+                $translation = $this->transUnitManager->updateTranslation($transUnitToUpdate, $locale, $content);
+            } else {
                 $translation = $this->transUnitManager->addTranslation($transUnit, $locale, $content, $translationFile);
+            }
                 if ($translation instanceof TranslationInterface) {
                     $imported++;
                 } else if($forceUpdate) {
